@@ -1,0 +1,45 @@
+# Python-generated files
+__pycache__/
+*.py[cod]
+*$py.class
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+venv/
+env/
+ENV/
+.pythonlibs/
+
+# Local uploads and runtime files
+uploads/
+*.log
+
+# Python tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Replit and agent-local state
+.cache/
+.upm/
+.local/
+.agents/
+
+# Environment files and private credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# OS/editor files
+.DS_Store
+.idea/
+.vscode/
