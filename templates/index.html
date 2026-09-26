@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Classify images with an AI-powered MobileNetV2 model.">
+    <title>Image Recognition System</title>
+    <style>
+        :root {
+            --ink: #13233f;
+            --muted: #66738c;
+            --line: #d9e2ef;
+            --surface: #ffffff;
+            --canvas: #f5f8fc;
+            --primary: #315efb;
+            --primary-deep: #2449d7;
+            --primary-soft: #eef2ff;
+            --success: #087f5b;
+            --success-soft: #e8f8f1;
+            --danger: #b42318;
+            --danger-soft: #fff1f0;
+            --shadow: 0 24px 70px rgba(30, 52, 92, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 8% 0%, rgba(87, 129, 255, 0.14), transparent 34rem),
+                radial-gradient(circle at 100% 100%, rgba(57, 196, 155, 0.1), transparent 28rem),
+                var(--canvas);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            line-height: 1.5;
+        }
+
+        .page-shell {
+            width: min(100% - 2rem, 980px);
+            margin: 0 auto;
+            padding: 3.5rem 0 4rem;
+        }
+
+        .brand-mark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.65rem;
+            height: 2.65rem;
+            margin-bottom: 1.25rem;
+            border-radius: 0.85rem;
+            color: white;
+            background: linear-gradient(145deg, #4e7bff, #244bd8);
+            box-shadow: 0 10px 24px rgba(49, 94, 251, 0.28);
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: -0.06em;
+        }
+
+        .intro {
+            max-width: 710px;
+            margin-bottom: 2rem;
+        }
+
+        .eyebrow {
+            margin: 0 0 0.6rem;
+            color: var(--primary);
+            font-size: 0.76rem;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            color: var(--ink);
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            line-height: 1.05;
+            letter-spacing: -0.055em;
+        }
+
+        .intro-copy {
+            max-width: 590px;
+            margin: 1rem 0 0;
+            color: var(--muted);
+            font-size: clamp(1rem, 2vw, 1.12rem);
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+            gap: 1.25rem;
+            align-items: stretch;
+        }
+
+        .card {
+            border: 1px solid rgba(217, 226, 239, 0.9);
+            border-radius: 1.25rem;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: var(--shadow);
+        }
+
+        .upload-card {
+            padding: clamp(1.25rem, 4vw, 2rem);
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .section-heading h2 {
+            margin: 0;
+            font-size: 1.12rem;
+            letter-spacing: -0.02em;
+        }
+
+        .file-limit {
+            flex: 0 0 auto;
+            padding: 0.3rem 0.6rem;
+            border-radius: 999px;
+            color: var(--muted);
+            background: #f3f6fa;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .drop-zone {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 250px;
+            padding: 2rem 1.25rem;
+            border: 1.5px dashed #afc0dc;
+            border-radius: 1rem;
+            color: var(--muted);
+            background: linear-gradient(145deg, #fbfdff, #f5f8ff);
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+        }
+
+        .drop-zone:hover,
+        .drop-zone:focus-within,
+        .drop-zone.is-dragging {
+            border-color: var(--primary);
+            background: var(--primary-soft);
+            transform: translateY(-2px);
+        }
+
+        .drop-zone-icon {
+            display: grid;
+            place-items: center;
+            width: 3.7rem;
+            height: 3.7rem;
+            margin-bottom: 1rem;
+            border-radius: 1.1rem;
+            color: var(--primary);
+            background: white;
+            box-shadow: 0 8px 20px rgba(49, 94, 251, 0.12);
+            font-size: 1.6rem;
+        }
+
+        .drop-zone strong {
+            color: var(--ink);
+            font-size: 1rem;
+        }
+
+        .drop-zone p {
+            margin: 0.35rem 0 0;
+            font-size: 0.88rem;
+        }
+
+        .drop-zone .browse-label {
+            color: var(--primary);
+            font-weight: 750;
+        }
+
+        #image {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+            white-space: nowrap;
+            clip-path: inset(50%);
+        }
+
+        .preview-card {
+            display: none;
+            margin-top: 1rem;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 1rem;
+            background: #f8fafd;
+        }
+
+        .preview-card.is-visible {
+            display: block;
+            animation: slide-up 220ms ease both;
+        }
+
+        .preview-image-wrap {
+            height: 190px;
+            background: #e9eef6;
+        }
+
+        .preview-image {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .preview-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.8rem 1rem;
+        }
+
+        .preview-name {
+            overflow: hidden;
+            color: var(--ink);
+            font-size: 0.84rem;
+            font-weight: 700;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .preview-size {
+            flex: 0 0 auto;
+            color: var(--muted);
+            font-size: 0.76rem;
+        }
+
+        .primary-button,
+        .secondary-button {
+            width: 100%;
+            min-height: 3.1rem;
+            margin-top: 1rem;
+            border: 0;
+            border-radius: 0.75rem;
+            font: inherit;
+            font-size: 0.94rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+        }
+
+        .primary-button {
+            color: white;
+            background: var(--primary);
+            box-shadow: 0 10px 20px rgba(49, 94, 251, 0.2);
+        }
+
+        .primary-button:hover:not(:disabled) {
+            background: var(--primary-deep);
+            box-shadow: 0 13px 24px rgba(49, 94, 251, 0.28);
+            transform: translateY(-1px);
+        }
+
+        .primary-button:disabled {
+            cursor: wait;
+            opacity: 0.72;
+        }
+
+        .secondary-button {
+            margin-top: 1.25rem;
+            border: 1px solid var(--line);
+            color: var(--ink);
+            background: white;
+        }
+
+        .secondary-button:hover {
+            border-color: #a9b9d0;
+            background: #f7f9fd;
+        }
+
+        .loading-state {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 0.65rem;
+            margin-top: 1rem;
+            color: var(--primary);
+            font-size: 0.86rem;
+            font-weight: 700;
+        }
+
+        .loading-state.is-visible {
+            display: flex;
+        }
+
+        .spinner {
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #cbd7ff;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 700ms linear infinite;
+        }
+
+        .result-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 100%;
+            padding: clamp(1.25rem, 4vw, 2rem);
+            background: linear-gradient(155deg, #13233f, #1f3760);
+            color: white;
+        }
+
+        .result-card .eyebrow {
+            color: #aebeff;
+        }
+
+        .result-card h2 {
+            margin: 0;
+            font-size: 1.12rem;
+        }
+
+        .result-placeholder {
+            margin: 1rem 0 0;
+            color: #b9c6dc;
+            font-size: 0.92rem;
+        }
+
+        .history-section {
+            margin-top: 1.25rem;
+            padding: clamp(1.25rem, 4vw, 2rem);
+        }
+
+        .history-header {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .history-header .eyebrow {
+            margin-bottom: 0.35rem;
+        }
+
+        .history-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            letter-spacing: -0.03em;
+        }
+
+        .history-count {
+            flex: 0 0 auto;
+            color: var(--muted);
+            font-size: 0.76rem;
+            font-weight: 700;
+        }
+
+        .history-list {
+            display: grid;
+            gap: 0.65rem;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 0.8rem;
+            border: 1px solid #e5ebf3;
+            border-radius: 0.85rem;
+            background: #fbfcfe;
+        }
+
+        .history-icon {
+            display: grid;
+            flex: 0 0 auto;
+            place-items: center;
+            width: 2.6rem;
+            height: 2.6rem;
+            border-radius: 0.7rem;
+            color: var(--primary);
+            background: var(--primary-soft);
+            font-size: 1rem;
+            font-weight: 850;
+            text-transform: uppercase;
+        }
+
+        .history-details {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .history-topline,
+        .history-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .history-filename {
+            min-width: 0;
+            overflow: hidden;
+            color: var(--ink);
+            font-size: 0.86rem;
+            font-weight: 750;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-time {
+            flex: 0 0 auto;
+            color: var(--muted);
+            font-size: 0.74rem;
+        }
+
+        .history-bottom {
+            margin-top: 0.25rem;
+            color: var(--muted);
+            font-size: 0.79rem;
+        }
+
+        .history-confidence {
+            color: var(--success);
+            font-weight: 800;
+        }
+
+        .history-empty {
+            margin: 0;
+            padding: 1.25rem;
+            border: 1px dashed var(--line);
+            border-radius: 0.85rem;
+            color: var(--muted);
+            background: #fbfcfe;
+            font-size: 0.88rem;
+            text-align: center;
+        }
+
+        .prediction {
+            margin-top: 1.35rem;
+        }
+
+        .prediction-label {
+            margin: 0;
+            color: white;
+            font-size: clamp(1.7rem, 4vw, 2.35rem);
+            line-height: 1.05;
+            letter-spacing: -0.045em;
+            overflow-wrap: anywhere;
+        }
+
+        .confidence-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            color: #d2dcf0;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .confidence-value {
+            color: white;
+        }
+
+        .confidence-track {
+            height: 0.5rem;
+            margin-top: 0.55rem;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.16);
+        }
+
+        .confidence-fill {
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #7f9cff, #61e6bd);
+        }
+
+        .message {
+            margin-top: 1rem;
+            padding: 0.85rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.88rem;
+        }
+
+        .error {
+            border: 1px solid #ffc7c2;
+            color: var(--danger);
+            background: var(--danger-soft);
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes slide-up {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 720px) {
+            .page-shell {
+                padding-top: 2rem;
+            }
+
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+
+            .result-card {
+                min-height: 260px;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .page-shell {
+                width: min(100% - 1.25rem, 980px);
+                padding-bottom: 2rem;
+            }
+
+            .upload-card,
+            .result-card {
+                padding: 1.1rem;
+            }
+
+            .drop-zone {
+                min-height: 220px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page-shell">
+        <header class="intro">
+            <div class="brand-mark" aria-hidden="true">◎</div>
+            <p class="eyebrow">AI-powered image analysis</p>
+            <h1>Image Recognition System</h1>
+            <p class="intro-copy">
+                Upload a photo and let a pretrained AI model identify the object
+                inside it in seconds.
+            </p>
+        </header>
+
+        <div class="workspace">
+            <section class="card upload-card" aria-labelledby="upload-heading">
+                <div class="section-heading">
+                    <h2 id="upload-heading">Choose an image</h2>
+                    <span class="file-limit">Up to 5 MB</span>
+                </div>
+
+                <form id="prediction-form" action="/" method="post" enctype="multipart/form-data">
+                    <label class="drop-zone" id="drop-zone" for="image" tabindex="0">
+                        <span class="drop-zone-icon" aria-hidden="true">↑</span>
+                        <strong>Drop your image here</strong>
+                        <p>or <span class="browse-label">browse from your device</span></p>
+                        <input id="image" name="image" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png">
+                    </label>
+
+                    <div class="preview-card" id="preview-card" aria-live="polite">
+                        <div class="preview-image-wrap">
+                            <img class="preview-image" id="preview-image" alt="Selected image preview">
+                        </div>
+                        <div class="preview-meta">
+                            <span class="preview-name" id="preview-name"></span>
+                            <span class="preview-size" id="preview-size"></span>
+                        </div>
+                    </div>
+
+                    <button class="primary-button" id="predict-button" type="submit">
+                        Predict Image
+                    </button>
+                    <div class="loading-state" id="loading-state" role="status" aria-live="polite">
+                        <span class="spinner" aria-hidden="true"></span>
+                        Analyzing your image…
+                    </div>
+                </form>
+
+                {% if error %}
+                <div class="message error" id="server-error" role="alert">{{ error }}</div>
+                {% endif %}
+                <div class="message error" id="client-error" role="alert" hidden></div>
+            </section>
+
+            <section class="card result-card" aria-labelledby="result-heading">
+                <p class="eyebrow">Recognition result</p>
+                <h2 id="result-heading">
+                    {% if prediction %}Your image looks like{% else %}Your result will appear here{% endif %}
+                </h2>
+
+                {% if prediction %}
+                <div class="prediction" role="status">
+                    <p class="prediction-label">{{ prediction.label|title }}</p>
+                    <div class="confidence-row">
+                        <span>Confidence</span>
+                        <span class="confidence-value">{{ "%.2f"|format(prediction.confidence) }}%</span>
+                    </div>
+                    <div class="confidence-track" aria-label="Confidence {{ "%.2f"|format(prediction.confidence) }} percent">
+                        <div class="confidence-fill" style="width: {{ prediction.confidence }}%;"></div>
+                    </div>
+                </div>
+                <button class="secondary-button" id="try-again-button" type="button">Try Another Image</button>
+                {% else %}
+                <p class="result-placeholder">
+                    Select a clear image to see the predicted object and the model’s confidence level.
+                </p>
+                {% endif %}
+            </section>
+        </div>
+
+        <section class="card history-section" aria-labelledby="history-heading">
+            <div class="history-header">
+                <div>
+                    <p class="eyebrow">In-memory activity</p>
+                    <h2 id="history-heading">Recent Predictions</h2>
+                </div>
+                <span class="history-count">{{ history|length }}/5 saved</span>
+            </div>
+
+            {% if history %}
+            <div class="history-list">
+                {% for item in history %}
+                <article class="history-item">
+                    <div class="history-icon" aria-hidden="true">{{ item.label[0] }}</div>
+                    <div class="history-details">
+                        <div class="history-topline">
+                            <strong class="history-filename" title="{{ item.filename }}">{{ item.filename }}</strong>
+                            <time class="history-time">{{ item.time }}</time>
+                        </div>
+                        <div class="history-bottom">
+                            <span>{{ item.label|title }}</span>
+                            <span class="history-confidence">{{ "%.2f"|format(item.confidence) }}%</span>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="history-empty">Your five most recent successful predictions will appear here.</p>
+            {% endif %}
+        </section>
+    </main>
+
+    <script>
+        (() => {
+            const form = document.getElementById("prediction-form");
+            const fileInput = document.getElementById("image");
+            const dropZone = document.getElementById("drop-zone");
+            const previewCard = document.getElementById("preview-card");
+            const previewImage = document.getElementById("preview-image");
+            const previewName = document.getElementById("preview-name");
+            const previewSize = document.getElementById("preview-size");
+            const predictButton = document.getElementById("predict-button");
+            const loadingState = document.getElementById("loading-state");
+            const tryAgainButton = document.getElementById("try-again-button");
+            const clientError = document.getElementById("client-error");
+            const serverError = document.getElementById("server-error");
+            const maxFileSize = 5 * 1024 * 1024;
+            const allowedExtensions = new Set(["jpg", "jpeg", "png"]);
+            const allowedMimeTypes = new Set(["image/jpeg", "image/png"]);
+
+            const formatFileSize = (bytes) => {
+                if (bytes < 1024) return `${bytes} B`;
+                if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+                return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+            };
+
+            const showPreview = (file) => {
+                const reader = new FileReader();
+                reader.addEventListener("load", () => {
+                    previewImage.src = reader.result;
+                    previewName.textContent = file.name;
+                    previewSize.textContent = formatFileSize(file.size);
+                    previewCard.classList.add("is-visible");
+                });
+                reader.readAsDataURL(file);
+            };
+
+            const clearPreview = () => {
+                previewImage.removeAttribute("src");
+                previewName.textContent = "";
+                previewSize.textContent = "";
+                previewCard.classList.remove("is-visible");
+            };
+
+            const setClientError = (message) => {
+                clientError.textContent = message;
+                clientError.hidden = !message;
+            };
+
+            const validateFile = (file) => {
+                if (!file) return "Please choose an image before predicting.";
+
+                const extension = file.name.split(".").pop().toLowerCase();
+                if (!allowedExtensions.has(extension) ||
+                    (file.type && !allowedMimeTypes.has(file.type))) {
+                    return "Please upload a JPG, JPEG, or PNG image.";
+                }
+
+                if (file.size > maxFileSize) {
+                    return "The image is too large. Please choose a file smaller than 5 MB.";
+                }
+
+                return "";
+            };
+
+            const handleFile = (file) => {
+                const validationMessage = validateFile(file);
+                setClientError(validationMessage);
+                if (serverError) serverError.hidden = true;
+
+                if (validationMessage) {
+                    fileInput.value = "";
+                    clearPreview();
+                    return;
+                }
+
+                showPreview(file);
+            };
+
+            fileInput.addEventListener("change", () => {
+                handleFile(fileInput.files[0]);
+            });
+
+            ["dragenter", "dragover"].forEach((eventName) => {
+                dropZone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    dropZone.classList.add("is-dragging");
+                });
+            });
+
+            ["dragleave", "drop"].forEach((eventName) => {
+                dropZone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    dropZone.classList.remove("is-dragging");
+                });
+            });
+
+            dropZone.addEventListener("drop", (event) => {
+                const [file] = event.dataTransfer.files;
+                if (!file) return;
+
+                handleFile(file);
+                if (!clientError.textContent) {
+                    const transfer = new DataTransfer();
+                    transfer.items.add(file);
+                    fileInput.files = transfer.files;
+                }
+            });
+
+            dropZone.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    fileInput.click();
+                }
+            });
+
+            form.addEventListener("submit", (event) => {
+                const validationMessage = validateFile(fileInput.files[0]);
+                if (validationMessage) {
+                    event.preventDefault();
+                    setClientError(validationMessage);
+                    return;
+                }
+
+                setClientError("");
+                predictButton.disabled = true;
+                predictButton.textContent = "Predicting…";
+                loadingState.classList.add("is-visible");
+                form.setAttribute("aria-busy", "true");
+            });
+
+            if (tryAgainButton) {
+                tryAgainButton.addEventListener("click", () => {
+                    window.location.href = "/";
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
