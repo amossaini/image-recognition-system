@@ -1,5 +1,9 @@
 # Image Recognition System
 
+## 🚀 Live Demo
+
+[Open Image Recognition System](https://image-recognition-system--amossaini95.replit.app)
+
 A Flask web application that uses a pretrained TensorFlow/Keras MobileNetV2
 model to classify uploaded images with ImageNet labels and confidence scores.
 
